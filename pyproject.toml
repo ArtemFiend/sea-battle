@@ -1,0 +1,14 @@
+[project]
+name = "sea-battle"
+version = "0.1.0"
+description = "REST service for a networked Battleship game with persistent sessions, pluggable strategies, and a tournament arena."
+readme = "README.md"
+authors = [
+    { name = "Artem Ponomarev" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
