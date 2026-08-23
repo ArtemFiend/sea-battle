@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17
+    container_name: sea-battle-db
+
+    environment:
+      POSTGRES_DB: sea_battle
+      POSTGRES_USER: sea_battle
+      POSTGRES_PASSWORD: sea_battle
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sea_battle -d sea_battle"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
