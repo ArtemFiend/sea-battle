@@ -1,24 +1,62 @@
 services:
   db:
-    image: postgres:17
-    container_name: sea-battle-db
-
+    image: postgres:${POSTGRES_VERSION:-17}
     environment:
-      POSTGRES_DB: sea_battle
-      POSTGRES_USER: sea_battle
-      POSTGRES_PASSWORD: sea_battle
-
+      POSTGRES_DB: ${POSTGRES_DB:-sea_battle}
+      POSTGRES_USER: ${POSTGRES_USER:-sea_battle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sea_battle}
     ports:
-      - "5432:5432"
-
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sea_battle -d sea_battle"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
       interval: 5s
       timeout: 5s
       retries: 5
+
+  migrate:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sea_battle}:${POSTGRES_PASSWORD:-sea_battle}@db:5432/${POSTGRES_DB:-sea_battle}
+    command: alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sea_battle}:${POSTGRES_PASSWORD:-sea_battle}@db:5432/${POSTGRES_DB:-sea_battle}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen("http://localhost:8000/health", timeout=1)
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
+
+  test:
+    build: .
+    profiles: ["test"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sea_battle}:${POSTGRES_PASSWORD:-sea_battle}@db:5432/${POSTGRES_DB:-sea_battle}
+    command: pytest -q
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
