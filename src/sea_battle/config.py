@@ -4,7 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str
+    database_url: str = (
+        "postgresql+psycopg://sea_battle:sea_battle@localhost:5432/sea_battle"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
