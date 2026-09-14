@@ -11,10 +11,11 @@ def test_game_session_is_saved_in_database() -> None:
 
 async def _test_game_session_is_saved_in_database() -> None:
     game_id = uuid.uuid4()
+    fleet = [{"coordinates": ["A1"]}]
 
     try:
         async with async_session_factory() as session:
-            session.add(GameSession(id=game_id, status="active"))
+            session.add(GameSession(id=game_id, status="active", fleet=fleet))
             await session.commit()
 
         async with async_session_factory() as session:
@@ -23,6 +24,7 @@ async def _test_game_session_is_saved_in_database() -> None:
             assert saved_game is not None
             assert saved_game.id == game_id
             assert saved_game.status == "active"
+            assert saved_game.fleet == fleet
             assert saved_game.created_at is not None
             assert saved_game.finished_at is None
     finally:

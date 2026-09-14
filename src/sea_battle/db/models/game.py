@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from sea_battle.db.base import Base
@@ -21,6 +21,11 @@ class GameSession(Base):
         String(20),
         nullable=False,
         default="active",
+    )
+
+    fleet: Mapped[list[dict[str, list[str]]]] = mapped_column(
+        JSONB,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
