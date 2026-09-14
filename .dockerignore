@@ -1,0 +1,15 @@
+.git
+.venv
+.pytest_cache
+__pycache__
+*.py[cod]
+.env
+.env.*
+!.env.example
+.coverage
+htmlcov
+.idea
+.vscode
+.DS_Store
+документы
+*.vsix

@@ -30,7 +30,7 @@ settings = get_settings()
 
 config.set_main_option(
     "sqlalchemy.url",
-    settings.database_url,
+    settings.database_url.replace("%", "%%"),
 )
 
 # other values from the config, defined by the needs of env.py,
