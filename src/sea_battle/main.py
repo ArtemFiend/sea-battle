@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from sea_battle.api.games import router as games_router
 from sea_battle.api.health import router as health_router
 
 
@@ -10,6 +11,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health_router)
+    app.include_router(games_router)
 
     return app
 
