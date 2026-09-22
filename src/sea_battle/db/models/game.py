@@ -28,6 +28,12 @@ class GameSession(Base):
         nullable=False,
     )
 
+    received_shots: Mapped[list[str]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

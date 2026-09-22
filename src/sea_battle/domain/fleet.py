@@ -18,7 +18,7 @@ class FleetValidationError(ValueError):
     """Raised when a fleet violates the game rules."""
 
 
-def _parse_coordinate(coordinate: str) -> Cell:
+def parse_coordinate(coordinate: str) -> Cell:
     if not isinstance(coordinate, str) or not _COORDINATE_PATTERN.fullmatch(
         coordinate
     ):
@@ -29,7 +29,7 @@ def _parse_coordinate(coordinate: str) -> Cell:
     return column, row
 
 
-def _format_coordinate(cell: Cell) -> Coordinate:
+def format_coordinate(cell: Cell) -> Coordinate:
     column, row = cell
     return f"{chr(ord('A') + column - 1)}{row}"
 
@@ -71,7 +71,7 @@ def validate_fleet(fleet: Sequence[Sequence[Coordinate]]) -> None:
 
     parsed_ships: list[tuple[Cell, ...]] = []
     for ship in fleet:
-        cells = tuple(_parse_coordinate(coordinate) for coordinate in ship)
+        cells = tuple(parse_coordinate(coordinate) for coordinate in ship)
         _validate_ship_geometry(cells)
         parsed_ships.append(cells)
 
@@ -168,7 +168,7 @@ def generate_fleet(rng: random.Random | None = None) -> Fleet:
         raise RuntimeError("Unable to generate a valid fleet")
 
     fleet = tuple(
-        tuple(_format_coordinate(cell) for cell in ship)
+        tuple(format_coordinate(cell) for cell in ship)
         for ship in placed_fleet
     )
     validate_fleet(fleet)
