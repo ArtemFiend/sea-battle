@@ -19,3 +19,15 @@ class CoordinateRequest(BaseModel):
 
 class ShotResultResponse(BaseModel):
     result: Literal["miss", "hit", "killed"]
+
+
+class ShotResponse(BaseModel):
+    coordinate: str
+
+
+class ShotResultRequest(BaseModel):
+    result: str
+
+
+class AcceptedResponse(BaseModel):
+    status: Literal["accepted"] = "accepted"

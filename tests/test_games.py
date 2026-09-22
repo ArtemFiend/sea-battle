@@ -114,6 +114,16 @@ def test_opponent_shot_returns_not_found_for_unknown_session() -> None:
     assert response.json() == {"detail": "Game session not found"}
 
 
+def test_request_validation_uses_contract_error_format() -> None:
+    response = client.post(
+        f"/game/{uuid.uuid4()}/opponent-shot",
+        json={},
+    )
+
+    assert response.status_code == 400
+    assert "detail" in response.json()
+
+
 def test_opponent_shot_returns_gone_for_finished_session() -> None:
     create_response = client.post("/game")
     session_id = uuid.UUID(create_response.json()["session_id"])
@@ -156,3 +166,92 @@ async def _set_game_status(session_id: uuid.UUID, status: str) -> None:
         assert saved_game is not None
         saved_game.status = status
         await session.commit()
+
+
+def test_shot_and_result_follow_sequence_and_target_hits() -> None:
+    create_response = client.post("/game")
+    session_id = uuid.UUID(create_response.json()["session_id"])
+
+    try:
+        first_shot_response = client.post(f"/game/{session_id}/shot")
+        assert first_shot_response.status_code == 200
+        first_shot = first_shot_response.json()["coordinate"]
+
+        duplicate_response = client.post(f"/game/{session_id}/shot")
+        assert duplicate_response.status_code == 409
+
+        invalid_result_response = client.post(
+            f"/game/{session_id}/shot/result",
+            json={"result": "unknown"},
+        )
+        assert invalid_result_response.status_code == 400
+
+        result_response = client.post(
+            f"/game/{session_id}/shot/result",
+            json={"result": "hit"},
+        )
+        assert result_response.status_code == 200
+        assert result_response.json() == {"status": "accepted"}
+
+        second_shot_response = client.post(f"/game/{session_id}/shot")
+        assert second_shot_response.status_code == 200
+        second_shot = second_shot_response.json()["coordinate"]
+        assert second_shot != first_shot
+        assert _are_neighbours(first_shot, second_shot)
+
+        killed_response = client.post(
+            f"/game/{session_id}/shot/result",
+            json={"result": "killed"},
+        )
+        assert killed_response.status_code == 200
+
+        third_shot_response = client.post(f"/game/{session_id}/shot")
+        assert third_shot_response.status_code == 200
+        third_shot = third_shot_response.json()["coordinate"]
+        assert third_shot not in {first_shot, second_shot}
+
+        miss_response = client.post(
+            f"/game/{session_id}/shot/result",
+            json={"result": "miss"},
+        )
+        assert miss_response.status_code == 200
+
+        no_pending_response = client.post(
+            f"/game/{session_id}/shot/result",
+            json={"result": "miss"},
+        )
+        assert no_pending_response.status_code == 409
+
+        asyncio.run(
+            _assert_outgoing_shots(
+                session_id,
+                [first_shot, second_shot, third_shot],
+                ["hit", "killed", "miss"],
+            )
+        )
+    finally:
+        asyncio.run(_delete_game(session_id))
+
+
+def _are_neighbours(first: str, second: str) -> bool:
+    first_column, first_row = ord(first[0]), int(first[1:])
+    second_column, second_row = ord(second[0]), int(second[1:])
+    return abs(first_column - second_column) + abs(first_row - second_row) == 1
+
+
+async def _assert_outgoing_shots(
+    session_id: uuid.UUID,
+    coordinates: list[str],
+    results: list[str],
+) -> None:
+    async with async_session_factory() as session:
+        saved_game = await session.get(GameSession, session_id)
+
+        assert saved_game is not None
+        assert [
+            shot["coordinate"] for shot in saved_game.outgoing_shots
+        ] == coordinates
+        assert [shot["result"] for shot in saved_game.outgoing_shots] == results
+        assert saved_game.pending_shot is None
+        assert saved_game.target_hits == []
+        assert saved_game.target_queue == []

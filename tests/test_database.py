@@ -33,6 +33,10 @@ async def _test_game_session_is_saved_in_database() -> None:
             assert saved_game.status == "active"
             assert saved_game.fleet == fleet
             assert saved_game.received_shots == []
+            assert saved_game.outgoing_shots == []
+            assert saved_game.pending_shot is None
+            assert saved_game.target_hits == []
+            assert saved_game.target_queue == []
             assert saved_game.created_at is not None
             assert saved_game.finished_at is None
     finally:

@@ -34,6 +34,29 @@ class GameSession(Base):
         default=list,
     )
 
+    outgoing_shots: Mapped[list[dict[str, str | None]]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+
+    pending_shot: Mapped[str | None] = mapped_column(
+        String(3),
+        nullable=True,
+    )
+
+    target_hits: Mapped[list[str]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+
+    target_queue: Mapped[list[str]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
