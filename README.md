@@ -1,10 +1,13 @@
 # Sea Battle
 
-Production-ready REST service for a networked Battleship game with persistent game sessions, pluggable shooting strategies, and a tournament arena.
+REST service for a networked Battleship game with persistent game sessions and
+a shooting strategy.
 
 ## Status
 
-Under active development.
+Under active development. The service can create games, process shots against
+its fleet, choose its own shots, and accept their results. Game closing and the
+tournament arena are not implemented yet.
 
 ## Tech Stack
 
@@ -28,6 +31,14 @@ docker compose up --build
 The API is available at <http://localhost:8000>. Its readiness endpoint at
 <http://localhost:8000/health> also verifies the database connection.
 
+Implemented endpoints:
+
+- `GET /health`
+- `POST /game`
+- `POST /game/{session_id}/opponent-shot`
+- `POST /game/{session_id}/shot`
+- `POST /game/{session_id}/shot/result`
+
 To override local ports or database credentials, copy the example settings:
 
 ```bash
@@ -49,3 +60,12 @@ Run only tests that do not require PostgreSQL:
 ```bash
 uv run pytest -q tests/test_health.py tests/test_fleet.py
 ```
+
+Test modules:
+
+- [`tests/test_fleet.py`](tests/test_fleet.py) — fleet geometry and generation
+- [`tests/test_battle.py`](tests/test_battle.py) — results of opponent shots
+- [`tests/test_strategy.py`](tests/test_strategy.py) — shooting strategy
+- [`tests/test_health.py`](tests/test_health.py) — readiness endpoint
+- [`tests/test_database.py`](tests/test_database.py) — PostgreSQL persistence
+- [`tests/test_games.py`](tests/test_games.py) — game API integration
