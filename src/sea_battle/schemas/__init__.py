@@ -1,3 +1,19 @@
-from sea_battle.schemas.game import CreateGameResponse, ShipResponse
+from sea_battle.schemas.game import (
+    AcceptedResponse,
+    CoordinateRequest,
+    CreateGameResponse,
+    ShipResponse,
+    ShotResponse,
+    ShotResultRequest,
+    ShotResultResponse,
+)
 
-__all__ = ["CreateGameResponse", "ShipResponse"]
+__all__ = [
+    "AcceptedResponse",
+    "CoordinateRequest",
+    "CreateGameResponse",
+    "ShipResponse",
+    "ShotResponse",
+    "ShotResultRequest",
+    "ShotResultResponse",
+]

@@ -36,3 +36,7 @@ dist/
 
 # Local project documents
 документы/
+Контракт*.md
+
+# Local editor extensions
+*.vsix

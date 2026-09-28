@@ -15,7 +15,14 @@ async def _test_game_session_is_saved_in_database() -> None:
 
     try:
         async with async_session_factory() as session:
-            session.add(GameSession(id=game_id, status="active", fleet=fleet))
+            session.add(
+                GameSession(
+                    id=game_id,
+                    status="active",
+                    fleet=fleet,
+                    received_shots=[],
+                )
+            )
             await session.commit()
 
         async with async_session_factory() as session:
@@ -25,6 +32,11 @@ async def _test_game_session_is_saved_in_database() -> None:
             assert saved_game.id == game_id
             assert saved_game.status == "active"
             assert saved_game.fleet == fleet
+            assert saved_game.received_shots == []
+            assert saved_game.outgoing_shots == []
+            assert saved_game.pending_shot is None
+            assert saved_game.target_hits == []
+            assert saved_game.target_queue == []
             assert saved_game.created_at is not None
             assert saved_game.finished_at is None
     finally:
