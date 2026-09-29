@@ -70,3 +70,4 @@ Test modules:
 - [`tests/test_health.py`](tests/test_health.py) — readiness endpoint
 - [`tests/test_database.py`](tests/test_database.py) — PostgreSQL persistence
 - [`tests/test_games.py`](tests/test_games.py) — game API integration
+- [`tests/test_concurrency.py`](tests/test_concurrency.py) — parallel session isolation and timing

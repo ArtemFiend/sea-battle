@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -200,7 +201,17 @@ async def close_game(
     session_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClosedResponse:
-    game = await _get_game(session_id, session)
+    result = await session.execute(
+        select(GameSession)
+        .where(GameSession.id == session_id)
+        .with_for_update()
+    )
+    game = result.scalar_one_or_none()
+    if game is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Game session not found",
+        )
     if game.status != "active":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
