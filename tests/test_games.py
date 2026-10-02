@@ -255,3 +255,41 @@ async def _assert_outgoing_shots(
         assert saved_game.pending_shot is None
         assert saved_game.target_hits == []
         assert saved_game.target_queue == []
+
+
+def test_close_game_persists_finished_state_and_cannot_repeat() -> None:
+    create_response = client.post("/game")
+    session_id = uuid.UUID(create_response.json()["session_id"])
+
+    try:
+        close_response = client.post(f"/game/{session_id}/close")
+        assert close_response.status_code == 200
+        assert close_response.json() == {"status": "closed"}
+        asyncio.run(_assert_game_is_closed(session_id))
+
+        repeated_response = client.post(f"/game/{session_id}/close")
+        assert repeated_response.status_code == 400
+        assert repeated_response.json() == {
+            "detail": "Game session is already closed"
+        }
+
+        shot_response = client.post(f"/game/{session_id}/shot")
+        assert shot_response.status_code == 410
+    finally:
+        asyncio.run(_delete_game(session_id))
+
+
+def test_close_game_returns_not_found_for_unknown_session() -> None:
+    response = client.post(f"/game/{uuid.uuid4()}/close")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Game session not found"}
+
+
+async def _assert_game_is_closed(session_id: uuid.UUID) -> None:
+    async with async_session_factory() as session:
+        saved_game = await session.get(GameSession, session_id)
+
+        assert saved_game is not None
+        assert saved_game.status == "closed"
+        assert saved_game.finished_at is not None

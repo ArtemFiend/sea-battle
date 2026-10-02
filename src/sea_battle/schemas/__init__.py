@@ -1,5 +1,6 @@
 from sea_battle.schemas.game import (
     AcceptedResponse,
+    ClosedResponse,
     CoordinateRequest,
     CreateGameResponse,
     ShipResponse,
@@ -10,6 +11,7 @@ from sea_battle.schemas.game import (
 
 __all__ = [
     "AcceptedResponse",
+    "ClosedResponse",
     "CoordinateRequest",
     "CreateGameResponse",
     "ShipResponse",

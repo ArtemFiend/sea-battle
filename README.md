@@ -5,9 +5,9 @@ a shooting strategy.
 
 ## Status
 
-Under active development. The service can create games, process shots against
-its fleet, choose its own shots, and accept their results. Game closing and the
-tournament arena are not implemented yet.
+Under active development. The service can create and close games, process shots
+against its fleet, choose its own shots, and accept their results. The
+tournament arena is not implemented yet.
 
 ## Tech Stack
 
@@ -38,6 +38,7 @@ Implemented endpoints:
 - `POST /game/{session_id}/opponent-shot`
 - `POST /game/{session_id}/shot`
 - `POST /game/{session_id}/shot/result`
+- `POST /game/{session_id}/close`
 
 To override local ports or database credentials, copy the example settings:
 
@@ -69,3 +70,4 @@ Test modules:
 - [`tests/test_health.py`](tests/test_health.py) — readiness endpoint
 - [`tests/test_database.py`](tests/test_database.py) — PostgreSQL persistence
 - [`tests/test_games.py`](tests/test_games.py) — game API integration
+- [`tests/test_concurrency.py`](tests/test_concurrency.py) — parallel session isolation and timing
