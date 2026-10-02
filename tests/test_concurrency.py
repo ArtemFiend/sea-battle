@@ -158,6 +158,103 @@ async def _test_parallel_close() -> None:
         await _delete_games(created_ids)
 
 
+def test_parallel_requests_in_one_game_keep_state_consistent() -> None:
+    asyncio.run(_test_parallel_requests_in_one_game())
+
+
+async def _test_parallel_requests_in_one_game() -> None:
+    created_ids: list[uuid.UUID] = []
+    coordinates = ["A1", "B2", "C3", "D4", "E5"]
+    results = ["miss", "hit"]
+    transport = ASGITransport(app=app)
+
+    try:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+        ) as client:
+            create_response = await _request(client, "POST", "/game")
+            assert create_response.status_code == 201
+            session_id = uuid.UUID(create_response.json()["session_id"])
+            created_ids.append(session_id)
+
+            opponent_responses = await asyncio.gather(
+                *(
+                    _request(
+                        client,
+                        "POST",
+                        f"/game/{session_id}/opponent-shot",
+                        json={"coordinate": coordinate},
+                    )
+                    for coordinate in coordinates
+                )
+            )
+            assert all(
+                response.status_code == 200
+                for response in opponent_responses
+            )
+
+            shot_responses = await asyncio.gather(
+                _request(client, "POST", f"/game/{session_id}/shot"),
+                _request(client, "POST", f"/game/{session_id}/shot"),
+            )
+            assert sorted(
+                response.status_code for response in shot_responses
+            ) == [200, 409]
+            successful_shot = next(
+                response
+                for response in shot_responses
+                if response.status_code == 200
+            ).json()["coordinate"]
+
+            result_responses = await asyncio.gather(
+                *(
+                    _request(
+                        client,
+                        "POST",
+                        f"/game/{session_id}/shot/result",
+                        json={"result": result},
+                    )
+                    for result in results
+                )
+            )
+
+        assert sorted(
+            response.status_code for response in result_responses
+        ) == [200, 409]
+        accepted_result = next(
+            result
+            for result, response in zip(results, result_responses, strict=True)
+            if response.status_code == 200
+        )
+        await _assert_consistent_game_state(
+            session_id,
+            coordinates,
+            successful_shot,
+            accepted_result,
+        )
+    finally:
+        await _delete_games(created_ids)
+
+
+async def _assert_consistent_game_state(
+    session_id: uuid.UUID,
+    received_shots: list[str],
+    outgoing_shot: str,
+    result: str,
+) -> None:
+    async with async_session_factory() as session:
+        game = await session.get(GameSession, session_id)
+
+        assert game is not None
+        assert len(game.received_shots) == len(received_shots)
+        assert set(game.received_shots) == set(received_shots)
+        assert game.pending_shot is None
+        assert game.outgoing_shots == [
+            {"coordinate": outgoing_shot, "result": result}
+        ]
+
+
 async def _delete_games(session_ids: list[uuid.UUID]) -> None:
     async with async_session_factory() as session:
         for session_id in session_ids:
