@@ -69,6 +69,10 @@ class Arena:
         max_turns: int = 1000,
         rng: random.Random | None = None,
     ) -> None:
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+        if max_turns < 1:
+            raise ValueError("max_turns must be positive")
         self.timeout = timeout
         self.max_turns = max_turns
         self._rng = rng or random.Random()
@@ -223,7 +227,7 @@ class Arena:
         state = _GameState(started.session_id, started.fleet)
         try:
             validate_fleet(started.fleet)
-        except FleetValidationError as error:
+        except (FleetValidationError, TypeError) as error:
             raise _PlayerFault(
                 player_index,
                 "invalid_fleet",

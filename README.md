@@ -5,9 +5,10 @@ a shooting strategy.
 
 ## Status
 
-Under active development. The service can create and close games, process shots
-against its fleet, choose its own shots, and accept their results. The
-tournament arena is not implemented yet.
+The service can create and close games, process shots against its fleet, choose
+its own shots, and accept their results. The arena can conduct full matches,
+detect invalid fleets and dishonest responses, enforce a one-second response
+timeout, and run a round-robin tournament.
 
 ## Tech Stack
 
@@ -71,3 +72,23 @@ Test modules:
 - [`tests/test_database.py`](tests/test_database.py) — PostgreSQL persistence
 - [`tests/test_games.py`](tests/test_games.py) — game API integration
 - [`tests/test_concurrency.py`](tests/test_concurrency.py) — parallel session isolation and timing
+- [`tests/test_arena_match.py`](tests/test_arena_match.py) — complete matches, rule enforcement, timeouts, and round-robin tournament
+- [`tests/test_arena_http.py`](tests/test_arena_http.py) — malformed and non-contract HTTP responses
+- [`tests/test_arena_integration.py`](tests/test_arena_integration.py) — full match through FastAPI and PostgreSQL
+
+## Tournament arena
+
+Start each participant service on its own localhost port, then pass their names
+and base URLs to the arena:
+
+```bash
+uv run python -m sea_battle.arena \
+  --service alpha=http://localhost:8001 \
+  --service bravo=http://localhost:8002 \
+  --service charlie=http://localhost:8003
+```
+
+Every service plays every other service once. A win is worth one point. The
+arena verifies the fleet and every shot result against the announced fleet,
+awards a match to the opponent after an invalid response or timeout, and prints
+all match results followed by the standings.

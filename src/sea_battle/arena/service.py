@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Protocol, cast
 
-from httpx2 import AsyncClient
+from httpx2 import AsyncBaseTransport, AsyncClient
 
 from sea_battle.domain.battle import ShotResult
 from sea_battle.domain.fleet import Fleet
@@ -46,10 +46,12 @@ class HTTPGameService:
         base_url: str,
         *,
         timeout: float = 1.0,
+        transport: AsyncBaseTransport | None = None,
     ) -> None:
         self._client = AsyncClient(
             base_url=base_url.rstrip("/"),
             timeout=timeout,
+            transport=transport,
         )
 
     async def __aenter__(self) -> "HTTPGameService":
@@ -64,12 +66,25 @@ class HTTPGameService:
     async def start_game(self) -> StartedGame:
         payload = await self._request("POST", "/game", expected_status=201)
         try:
-            session_id = uuid.UUID(payload["session_id"])
+            session_id_value = payload["session_id"]
             ships = payload["ships"]
-            fleet = tuple(
-                tuple(ship["coordinates"])
-                for ship in ships
-            )
+            if not isinstance(session_id_value, str):
+                raise TypeError("session_id must be a string")
+            if not isinstance(ships, list):
+                raise TypeError("ships must be a list")
+            fleet_items: list[tuple[str, ...]] = []
+            for ship in ships:
+                if not isinstance(ship, dict):
+                    raise TypeError("ship must be an object")
+                coordinates = ship.get("coordinates")
+                if not isinstance(coordinates, list) or not all(
+                    isinstance(coordinate, str)
+                    for coordinate in coordinates
+                ):
+                    raise TypeError("coordinates must be a list of strings")
+                fleet_items.append(tuple(coordinates))
+            session_id = uuid.UUID(session_id_value)
+            fleet = tuple(fleet_items)
         except (KeyError, TypeError, ValueError) as error:
             raise ServiceProtocolError(
                 "Invalid response from POST /game"
