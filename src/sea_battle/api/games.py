@@ -1,7 +1,9 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +18,7 @@ from sea_battle.domain.strategy import (
 )
 from sea_battle.schemas.game import (
     AcceptedResponse,
+    ClosedResponse,
     CoordinateRequest,
     CreateGameResponse,
     ShipResponse,
@@ -27,16 +30,31 @@ from sea_battle.schemas.game import (
 router = APIRouter(prefix="/game", tags=["game"])
 
 
-async def _get_active_game(
+async def _get_game(
     session_id: uuid.UUID,
     session: AsyncSession,
+    *,
+    for_update: bool = False,
 ) -> GameSession:
-    game = await session.get(GameSession, session_id)
+    statement = select(GameSession).where(GameSession.id == session_id)
+    if for_update:
+        statement = statement.with_for_update()
+
+    result = await session.execute(statement)
+    game = result.scalar_one_or_none()
     if game is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Game session not found",
         )
+    return game
+
+
+async def _get_active_game(
+    session_id: uuid.UUID,
+    session: AsyncSession,
+) -> GameSession:
+    game = await _get_game(session_id, session, for_update=True)
     if game.status != "active":
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
@@ -183,3 +201,21 @@ async def accept_shot_result(
     game.target_queue = target_queue
     await _commit(session)
     return AcceptedResponse()
+
+
+@router.post("/{session_id}/close", response_model=ClosedResponse)
+async def close_game(
+    session_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ClosedResponse:
+    game = await _get_game(session_id, session, for_update=True)
+    if game.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Game session is already closed",
+        )
+
+    game.status = "closed"
+    game.finished_at = datetime.now(timezone.utc)
+    await _commit(session)
+    return ClosedResponse()

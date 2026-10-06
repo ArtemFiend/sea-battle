@@ -31,3 +31,7 @@ class ShotResultRequest(BaseModel):
 
 class AcceptedResponse(BaseModel):
     status: Literal["accepted"] = "accepted"
+
+
+class ClosedResponse(BaseModel):
+    status: Literal["closed"] = "closed"
